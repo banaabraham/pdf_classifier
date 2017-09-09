@@ -9,7 +9,7 @@ from pdfminer.pdfpage import PDFPage
 from threading import Thread
 
 
-#convert pdf file to text
+#convert pdf file to text function
 def convert(fname):
     pagenums = set()
     output = StringIO()
@@ -26,14 +26,15 @@ def convert(fname):
     output.close
     return text 
 
-def find_text(query,text_list,result_dict):
+def find_text(query,text,result_dict):
+    text_list = str(text.decode("utf8")).split(" ")
     count = 0
     for i in text_list:
         if i==query:
             count+=1
     result_dict[query] = count        
     
-#classify the pdf using Gaussian Naive Bayes Classifier
+#classify the pdf using machine learning algorithm
 def classification(class_dict):    
     data = np.array([i for i in class_dict.values()][::-1]).reshape(1,-1)
     x = np.array([[0,0,0,41,0],[4,1,0,0,1],[1,1,0,0,5]])
@@ -62,17 +63,15 @@ def get_list(directory):
 
 if __name__ == "__main__":
     pdf_name = input("input pdf file name: ")
-    text = str(convert(pdf_name).decode("utf8"))
-    text_list = text.split(" ")
-    
+    text = convert(pdf_name)
     keyword_english = ["economy","social","technology","religion","computer"]
     
     class_dict = dict()
     
     threads = []
     for i in keyword_english:
-        find_text(i,text_list,class_dict)
-        t = Thread(target=find_text,args=(i,text_list,class_dict))
+        find_text(i,text,class_dict)
+        t = Thread(target=find_text,args=(i,text,class_dict))
         threads.append(t)
         t.start()
     for t in threads:
