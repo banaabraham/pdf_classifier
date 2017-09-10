@@ -41,16 +41,7 @@ class pdf_classify(object):
         txt = str(self.text.decode("utf8"))[:100]
         b = TextBlob(txt)
         self.lang = b.detect_language()
-        return b.detect_language()
-                
-        """
-        translate_client = translate.Client()
-    
-        # Text can also be a sequence of strings, in which case this method
-        # will return a sequence of results for each text.
-        result = translate_client.detect_language(self.text)
-        return result
-        """    
+        return b.detect_language()    
     
         
     def find_all(self):
