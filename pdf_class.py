@@ -6,18 +6,19 @@ from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import TextConverter
 from pdfminer.layout import LAParams
 from pdfminer.pdfpage import PDFPage
-
-
+from google.cloud import translate
+from textblob import TextBlob
 #convert pdf file to text function
 
 class pdf_classify(object):
     
     def __init__(self,fname):
         self.fname = fname
-        self.keyword_english = ["computer","economy","religion","social","technology"]
-        self.result_dict = dict()
+        self.keyword_english = ["computer","economy","religion","social","technology","nuclear","computation","calcualtions"]
+        self.keyword_indonesia = ["komputer","ekonomi","agama","sosial","teknologi","nuklir","komputasi","kalkulasi"]
+        self.result_list = []
         #training data, it's a count for each keyword in keyword_english
-        self.x = np.array([[0,0,0,41,0],[4,1,0,0,1],[1,1,0,0,5]])
+        self.x = np.array([[0,0,0,41,0,0,0,0],[4,1,0,0,1,1,1,1],[1,1,0,0,5,2,1,1]])
         self.Y = np.array([1,2,2])
     
     #convert pdf to text 
@@ -34,32 +35,54 @@ class pdf_classify(object):
         converter.close()
         self.text = output.getvalue()
         output.close
-        return self.text  
+        return self.text
+    
+    def detect_language(self):
+        txt = str(self.text.decode("utf8"))[:100]
+        b = TextBlob(txt)
+        self.lang = b.detect_language()
+        return b.detect_language()
+                
+        """
+        translate_client = translate.Client()
+    
+        # Text can also be a sequence of strings, in which case this method
+        # will return a sequence of results for each text.
+        result = translate_client.detect_language(self.text)
+        return result
+        """    
+    
         
     def find_all(self):
         self.convert()
         text_list = str(self.text.decode("utf8")).split(" ")
-        for query in self.keyword_english:
+        
+        if self.lang == "en":
+            list_ = self.keyword_english
+        elif self.lang == "id":
+            list_ = self.keyword_indonesia
+            
+        for query in list_:
             count = 0
             for i in text_list:
                 if i==query:
-                    count+=1
-            self.result_dict[query] = count  
-                              
+                    count+=1        
+            self.result_list.append((query,count))  
+            
+                  
     #classify the pdf using machine learning algorithm
     def classify(self):
         self.find_all()
-        data = np.array([i for i in self.result_dict.values()][::-1]).reshape(1,-1)
-                                
+        data = np.array([self.result_list[i][1] for i in range(len(self.result_list))]).reshape(1,-1)                                
         gnb = GaussianNB()
         gnb.fit(self.x,self.Y)
         self.prediction = int(gnb.predict(data))
         
         if self.prediction == 1:
-            print("%s is SOCIAL" %(self.fname))
+            print("%s is SOCIAL SCIENCE" %(self.fname))
         elif self.prediction == 2:
-            print("%s is SCIENCE" %(self.fname))
-        return self.prediction,data,self.result_dict
+            print("%s is NATURAL SCIENCE" %(self.fname))
+        return self.prediction,data,self.result_list
         
                    
 def get_list(directory=os.getcwd()):
@@ -75,4 +98,6 @@ def get_list(directory=os.getcwd()):
 
 if __name__ == "__main__":
     ebook = pdf_classify("something.pdf")
-    ebook.classify()
+    ebook.convert()
+    d = ebook.detect_language()
+    c = ebook.classify()
