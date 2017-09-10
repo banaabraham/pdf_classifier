@@ -8,7 +8,7 @@ from pdfminer.layout import LAParams
 from pdfminer.pdfpage import PDFPage
 from google.cloud import translate
 from textblob import TextBlob
-#convert pdf file to text function
+
 
 class pdf_classify(object):
     
