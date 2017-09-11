@@ -8,14 +8,13 @@ from pdfminer.layout import LAParams
 from pdfminer.pdfpage import PDFPage
 from google.cloud import translate
 from textblob import TextBlob
-
+#convert pdf file to text function
 
 class pdf_classify(object):
     
     def __init__(self,fname):
         self.fname = fname
-        self.keyword_english = ["computer","economy","religion","social","technology","nuclear","computation","calcualtions"]
-        self.keyword_indonesia = ["komputer","ekonomi","agama","sosial","teknologi","nuklir","komputasi","kalkulasi"]
+        self.keyword_english = ["computer","economy","religion","social","technology","nuclear","computation","calculations"]
         self.result_list = []
         #training data, it's a count for each keyword in keyword_english
         self.x = np.array([[0,0,0,41,0,0,0,0],[4,1,0,0,1,1,1,1],[1,1,0,0,5,2,1,1]])
@@ -41,17 +40,27 @@ class pdf_classify(object):
         txt = str(self.text.decode("utf8"))[:100]
         b = TextBlob(txt)
         self.lang = b.detect_language()
-        return b.detect_language()    
-    
-        
+        return b.detect_language()
+
+   
     def find_all(self):
         self.convert()
-        text_list = str(self.text.decode("utf8")).split(" ")
+        self.detect_language()
         
-        if self.lang == "en":
+        text_list = str(self.text.decode("utf8")).split(" ")
+        #keywords_txt = " ".join(self.keyword_english)
+        
+        list_ = []
+        if self.lang != "en":
+            
+            for text in self.keyword_english:
+                blob = TextBlob(text)
+                try:
+                    list_.append(str(blob.translate(to=self.lang)))
+                except:
+                    list_.append(text)
+        else:
             list_ = self.keyword_english
-        elif self.lang == "id":
-            list_ = self.keyword_indonesia
             
         for query in list_:
             count = 0
@@ -59,12 +68,14 @@ class pdf_classify(object):
                 if i==query:
                     count+=1        
             self.result_list.append((query,count))  
-            
+        return list_
                   
     #classify the pdf using machine learning algorithm
     def classify(self):
         self.find_all()
-        data = np.array([self.result_list[i][1] for i in range(len(self.result_list))]).reshape(1,-1)                                
+        data = np.array([self.result_list[i][1] \
+                         for i in range(len(self.result_list))]).reshape(1,-1) 
+                               
         gnb = GaussianNB()
         gnb.fit(self.x,self.Y)
         self.prediction = int(gnb.predict(data))
@@ -88,7 +99,6 @@ def get_list(directory=os.getcwd()):
     return pdflist 
 
 if __name__ == "__main__":
-    ebook = pdf_classify("something.pdf")
+    ebook = pdf_classify("manifesto.pdf")
     ebook.convert()
-    d = ebook.detect_language()
     c = ebook.classify()
